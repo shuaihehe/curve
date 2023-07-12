@@ -271,7 +271,7 @@ check umount date consistency
 *** Keywords ***
 
 init failover cluster
-     clean env
+     #clean env
      destroy curvefs
      clean log
      deploy all servers
