@@ -53,6 +53,8 @@ bool KVClientManager::Init(const KVClientManagerOpt& config,
                            const std::string& fsName) {
     client_ = kvclient;
     kvClientManagerMetric_ = absl::make_unique<KVClientManagerMetric>(fsName);
+    getQueueSize_.reset("get_queue_size"); //1
+    setQueueSize_.reset("set_queue_size"); //1
     return threadPool_.Start(config.setThreadPooln) == 0;
 }
 
@@ -64,9 +66,11 @@ void KVClientManager::Uninit() {
 void KVClientManager::Set(std::shared_ptr<SetKVCacheTask> task) {
     threadPool_.Enqueue([task, this]() {
         std::string error_log;
+        setQueueSize_ << 1
         task->res =
             client_->Set(task->key, task->value, task->length, &error_log);
         if (task->res) {
+            setQueueSize_ << -1; 
             kvClientManagerMetric_->count << 1;
         }
         OnReturn(&kvClientManagerMetric_->set, task);
@@ -99,9 +103,13 @@ void KVClientManager::Get(std::shared_ptr<GetKVCacheTask> task) {
     threadPool_.Enqueue([task, this]() {
         std::string error_log;
         memcached_return_t retCode;
+        getQueueSize_ << 1;
         task->res = client_->Get(task->key, task->value, task->offset,
                                  task->valueLength, &error_log, &task->length,
                                  &retCode);
+        if (task->res) {
+            getQueueSize_ << -1;
+        }
         UpdateHitMissMetric(retCode, kvClientManagerMetric_.get());
         OnReturn(&kvClientManagerMetric_->get, task);
     });

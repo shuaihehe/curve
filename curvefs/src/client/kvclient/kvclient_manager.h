@@ -37,6 +37,7 @@
 #include "curvefs/src/client/metric/client_metric.h"
 #include "src/common/concurrent/task_thread_pool.h"
 #include "src/common/s3_adapter.h"
+#include "bvar/bvar.h"  
 
 using curvefs::client::metric::KVClientManagerMetric;
 
@@ -160,6 +161,8 @@ class KVClientManager {
     TaskThreadPool<bthread::Mutex, bthread::ConditionVariable> threadPool_;
     std::shared_ptr<KVClient> client_;
     std::unique_ptr<KVClientManagerMetric> kvClientManagerMetric_;
+    bvar::Adder<int64_t> getQueueSize_; 
+    bvar::Adder<int64_t> setQueueSize_; 
 };
 
 }  // namespace client
