@@ -53,8 +53,11 @@ bool KVClientManager::Init(const KVClientManagerOpt& config,
                            const std::string& fsName) {
     client_ = kvclient;
     kvClientManagerMetric_ = absl::make_unique<KVClientManagerMetric>(fsName);
-    getQueueSize_.reset("get_queue_size"); //1
-    setQueueSize_.reset("set_queue_size"); //1
+    brpc::StartDummyServerAt(9000);
+    getQueueSize_.expose("getQueueSize_");
+    setQueueSize_.expose("setQueueSize_");
+    getQueueSize_.reset(); 
+    setQueueSize_.reset(); 
     return threadPool_.Start(config.setThreadPooln) == 0;
 }
 
@@ -66,7 +69,7 @@ void KVClientManager::Uninit() {
 void KVClientManager::Set(std::shared_ptr<SetKVCacheTask> task) {
     threadPool_.Enqueue([task, this]() {
         std::string error_log;
-        setQueueSize_ << 1
+        setQueueSize_ << 1;
         task->res =
             client_->Set(task->key, task->value, task->length, &error_log);
         if (task->res) {
